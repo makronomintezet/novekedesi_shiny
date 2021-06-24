@@ -2,7 +2,7 @@ library(shiny)
 library(shinydashboard)
 
 components <- readRDS("S:/Kozos/Inkluziv_novekedesi_index/Adatok/components.rds")
-source('C:/rprojects/novekedesi_index/R/functions.R', encoding = 'UTF-8')
+source('S:/Kozos/Inkluziv_novekedesi_index/Adatok/functions.R', encoding = 'UTF-8')
 
 ui <- dashboardPage(skin = "red",
                     dashboardHeader(title = "Inkluzív növekedés"),
