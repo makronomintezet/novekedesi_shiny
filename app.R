@@ -1,74 +1,139 @@
 library(shiny)
+library(shinymanager)
 library(shinydashboard)
 
-components <- readRDS("S:/Kozos/Inkluziv_novekedesi_index/Adatok/components.rds")
-source('S:/Kozos/Inkluziv_novekedesi_index/Adatok/functions.R', encoding = 'UTF-8')
+components <- readRDS("components.rds")
+source('functions.R', encoding = 'UTF-8')
+data_descript <- readxl::read_excel("adatok_forrasa_leirasa.xlsx")
 
-ui <- dashboardPage(skin = "red",
-                    dashboardHeader(title = "Inkluzív növekedés"),
-                    dashboardSidebar(
-                      h3("Dashboard bemutatása")
-                    ),
-                    
-                    dashboardBody(
-                      shiny::fluidRow(
-                        shiny::column(width = 6,
-                                      box(title = "Felhasznált adatok", height = "600px", width = NULL,
-                                          shiny::tableOutput("descriptive")
-                                      ),
-                                      box(
-                                        title = "Adatminőség", height = "700px", width = NULL,
-                                        shiny::inputPanel(
-                                          selectInput("choosen_var",
-                                                      "Változó:", choices = NiceName(names(components[-c(1:3)]))),
-                                          selectInput("development",
-                                                      "Fejletség:", choices = c("Fejlett", "Fejlődő", "Fejlődő (alsóbb)"))
-                                        ),
-                                        infoBoxOutput("box1"),
-                                        shiny::plotOutput("missing_heatmap")
-                                      )
-                                      
-                        ), 
-                        box(
-                          # Title can include an icon
-                          title = "WEF jellegű ábrák", width = 6, height = "1300px",
-                          shiny::inputPanel(
-                            selectInput("development_wef",
-                                        "Fejletség:", choices = c("Fejlett", "Fejlődő", "Fejlődő (alsóbb)"))
-                          ),
-                          shiny::plotOutput("wef_plot", height = "1100px")
-                          
-                        )
-                        
-                      ),
-                      shiny::fluidRow(
-                        box(title = "Dinamika", width = 12, height = "900px",
-                            inputPanel(
-                              selectInput("x",
-                                          "X-tengely:", choices = NiceName(names(components[-c(1:3)])), selected = "Foglalkoztatási ráta"),
-                              selectInput("y",
-                                          "Y-tengely:", choices = NiceName(names(components[-c(1:3)])), selected = "Függőségi ráta"),
-                              selectInput("size",
-                                          "Méret:", choices = NiceName(names(components[-c(1:3)])), selected = "GDP (PPP)")
-                            ), 
-                            plotly::plotlyOutput("dynamic_plot")
-                            )
-                      )
-                    )
+
+dbHeader <- dashboardHeader(title = "Inkluzív növekedés",
+                            tags$li(a(href = 'https://makronomintezet.hu/',
+                                      img(src = 'company_logo.png',
+                                          title = "Company Home", height = "30px"),
+                                      style = "padding-top:10px; padding-bottom:10px;"),
+                                    class = "dropdown"))
+
+inactivity <- "function idleTimer() {
+var t = setTimeout(logout, 120000);
+window.onmousemove = resetTimer; // catches mouse movements
+window.onmousedown = resetTimer; // catches mouse movements
+window.onclick = resetTimer;     // catches mouse clicks
+window.onscroll = resetTimer;    // catches scrolling
+window.onkeypress = resetTimer;  //catches keyboard actions
+
+function logout() {
+window.close();  //close the window
+}
+
+function resetTimer() {
+clearTimeout(t);
+t = setTimeout(logout, 120000);  // time is in milliseconds (1000 is 1 second)
+}
+}
+idleTimer();"
+
+credentials <- data.frame(
+  user = c("maki"),
+  password = c("Patriot2020"),
+  stringsAsFactors = FALSE
 )
 
+ui <- secure_app(head_auth = tags$script(inactivity),
+                 dashboardPage(skin = "red",
+                               dbHeader,
+                               dashboardSidebar(
+                                 sidebarMenu(
+                                   menuItem("Felhasznált adatok", tabName = "data", icon = icon("info")),
+                                   
+                                   menuItem("Adatminőség", tabName = "missing", icon = icon("database")),
+                                   menuItem("WEF ábrák", tabName = "wef", icon = icon("th")),
+                                   menuItem("Dinamika", tabName = "dynamics", icon = icon("chart-line"))
+                                 )
+                               ),
+                               
+                               dashboardBody(
+                                 tabItems(
+                                   # First tab content
+                                   tabItem(tabName = "data",
+                                           box(title = "Felhasznált adatok", height = "400px", width = 12,
+                                               DT::dataTableOutput("descriptive", height = "300px")
+                                           )
+                                           
+                                   ),
+                                   tabItem(tabName = "missing",
+                                           box(
+                                             title = "Adatminőség", height = "700px", width = 12,
+                                             shiny::inputPanel(
+                                               selectInput("choosen_var",
+                                                           "Változó:", choices = NiceName(names(components[-c(1:3)]))),
+                                               selectInput("development",
+                                                           "Fejletség:", choices = c("Fejlett", "Fejlődő", "Fejlődő (alsóbb)"))
+                                             ),
+                                             infoBoxOutput("box1"),
+                                             shiny::plotOutput("missing_heatmap")
+                                           )     
+                                   ),
+                                   tabItem(tabName = "wef",
+                                           box(
+                                             # Title can include an icon
+                                             title = "WEF jellegű ábrák", width = 12, height = "1300px",
+                                             shiny::inputPanel(
+                                               selectInput("development_wef",
+                                                           "Fejletség:", choices = c("Fejlett", "Fejlődő", "Fejlődő (alsóbb)"))
+                                             ),
+                                             shiny::plotOutput("wef_plot", height = "1100px")
+                                             
+                                           )
+                                   ),
+                                   tabItem(tabName = "dynamics",
+                                           box(title = "Dinamika", width = 12, height = "900px",
+                                               inputPanel(
+                                                 selectInput("x",
+                                                             "X-tengely:", choices = NiceName(names(components[-c(1:3)])), selected = "Foglalkoztatási ráta"),
+                                                 selectInput("y",
+                                                             "Y-tengely:", choices = NiceName(names(components[-c(1:3)])), selected = "Függőségi ráta"),
+                                                 selectInput("size",
+                                                             "Méret:", choices = NiceName(names(components[-c(1:3)])), selected = "GDP (PPP)")
+                                               ), 
+                                               plotly::plotlyOutput("dynamic_plot")
+                                           )
+                                   )
+                                 )
+                               )
+                 )
+)
 
 server <- function(input, output) { 
   
-  output$descriptive <- renderTable({
-    data.frame(
-      stringsAsFactors = FALSE,
-      Adat = c("GDP/fő", "Várható élettartam", "Foglalkoztatási ráta", "..."),
-      Forrás = c("Világ Bank", "Világ Bank", "Világ Bank", "..."),
-      Leírás = c("GDP per capita, PPP (constant 2011 international $)","Születéskori várható élettartam",
-                 "Employment to population ratio, 15+, total (%) (modeled ILO estimate)","...")
-    )
-  }, striped = TRUE, hover = TRUE, bordered = TRUE, width = "800px")
+  result_auth <- secure_server(check_credentials = check_credentials(credentials))
+  
+  output$res_auth <- renderPrint({
+    reactiveValuesToList(result_auth)
+  })
+  
+  
+  output$descriptive <- DT::renderDataTable({
+    data_descript %>% 
+      select(1:3) %>% 
+      arrange(Adat) %>% 
+      replace_na(list(Leírás = "")) %>% 
+      mutate(Leírás = str_wrap(Leírás, 30)) %>% 
+      DT::datatable(
+        extensions = c('Buttons', "Scroller"),
+        options = list(
+          deferRender = TRUE,
+          scrollY = 800,
+          scroller = TRUE,
+          style = "bootstrap4",
+          searching = TRUE,
+          autoWidth = TRUE,
+          ordering = TRUE,
+          dom = 'Bfrtip',
+          buttons = c('copy', 'csv', 'excel', 'pdf', 'print')
+        )
+      )
+  })
   
   
   output$box1 <- shinydashboard::renderInfoBox({
@@ -207,7 +272,7 @@ server <- function(input, output) {
             strip.text = element_text(size = 20),
             axis.text = element_text(size = 14), 
             axis.title = element_text(size = 16)
-            )
+      )
     
     myplotly(p, height = 700, width = 1900)
   })
