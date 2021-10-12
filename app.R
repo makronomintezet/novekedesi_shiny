@@ -2,7 +2,7 @@ library(shiny)
 library(shinymanager)
 library(shinydashboard)
 
-components <- readRDS("components.rds")
+components <- read.csv("components.csv")
 data_descript <- readRDS("data_descript.RDS")
 source('functions.R', encoding = 'UTF-8')
 # data_descript <- readxl::read_excel("adatok_forrasa_leirasa.xlsx")
