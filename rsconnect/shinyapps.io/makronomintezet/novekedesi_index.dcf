@@ -1,0 +1,14 @@
+name: novekedesi_index
+title: novekedesi_index
+username:
+account: makronomintezet
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 4360822
+bundleId: 4794990
+url: https://makronomintezet.shinyapps.io/novekedesi_index/
+when: 1625648838.40288
+lastSyncTime: 1625648838.40288
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: .RData|inkluziv_app.bat|README.md|?j sz?veges dokumentum.txt

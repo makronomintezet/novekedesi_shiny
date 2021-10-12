@@ -1,0 +1,13 @@
+name: inkluziv_novekedesi_index
+title: inkluziv_novekedesi_index
+username:
+account: makronomintezet
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 4360808
+bundleId: 4841760
+url: https://makronomintezet.shinyapps.io/inkluziv_novekedesi_index/
+when: 1626876825.09619
+lastSyncTime: 1626876825.09619
+asMultiple: FALSE
+asStatic: FALSE
