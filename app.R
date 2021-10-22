@@ -1,147 +1,141 @@
 library(shiny)
-library(shinymanager)
 library(shinydashboard)
-
-components <- read.csv("components.csv")
-data_descript <- readRDS("data_descript.RDS")
-source('functions.R', encoding = 'UTF-8')
-# data_descript <- readxl::read_excel("adatok_forrasa_leirasa.xlsx")
+library(tidyverse)
 
 
-dbHeader <- dashboardHeader(title = "Inkluzív növekedés",
+load("results.RData") # all objects from inclusive-index repo
+components <- df
+
+dbHeader <- dashboardHeader(title = "Inkluzív Növekedési Index",
                             tags$li(a(href = 'https://makronomintezet.hu/',
                                       img(src = 'company_logo.png',
                                           title = "Company Home", height = "30px"),
                                       style = "padding-top:10px; padding-bottom:10px;"),
                                     class = "dropdown"))
 
-inactivity <- "function idleTimer() {
-var t = setTimeout(logout, 120000);
-window.onmousemove = resetTimer; // catches mouse movements
-window.onmousedown = resetTimer; // catches mouse movements
-window.onclick = resetTimer;     // catches mouse clicks
-window.onscroll = resetTimer;    // catches scrolling
-window.onkeypress = resetTimer;  //catches keyboard actions
 
-function logout() {
-window.close();  //close the window
-}
-
-function resetTimer() {
-clearTimeout(t);
-t = setTimeout(logout, 120000);  // time is in milliseconds (1000 is 1 second)
-}
-}
-idleTimer();"
-
-credentials <- data.frame(
-  user = c("maki", "Vékás Péter"),
-  password = c("Patriot2020", "vendeg"),
-  stringsAsFactors = FALSE
+ui <- dashboardPage(dbHeader,
+                    dashboardSidebar(
+                      sidebarMenu(
+                        menuItem("Az index", tabName = "data", icon = icon("database")),
+                        menuItem("Dinamika", tabName = "dynamics", icon = icon("chart-line")),
+                        menuItem("Felhasznált adatok", tabName = "missing", icon = icon("database")),
+                        menuItem("WEF ábrák", tabName = "wef", icon = icon("th"))
+                      )
+                    ),
+                    
+                    dashboardBody(
+                      # css --------------------
+                      tags$head(tags$style(HTML('
+        /* logo */
+        .skin-blue .main-header .logo {
+                              background-color: #8f8f8f;
+                              }
+        /* logo when hovered */
+        .skin-blue .main-header .logo:hover {
+                              background-color: #808080;
+                              }
+        /* navbar (rest of the header) */
+        .skin-blue .main-header .navbar {
+                              background-color: #8f8f8f;
+                              }
+        /* toggle button when hovered  */                    
+         .skin-blue .main-header .navbar .sidebar-toggle:hover{
+                              background-color: #808080;
+         }
+                              
+        .bg-orange {background-color: #a39661!important; }
+                              '))),
+                      tabItems(
+                        # First tab content
+                        tabItem(tabName = "data",
+                                plotOutput("index"),
+                                downloadButton("downloadBtn", "Excel")
+                                
+                        ),
+                        tabItem(tabName = "missing",
+                                box(
+                                  title = "Adatminőség", height = "700px", width = 12,
+                                  shiny::inputPanel(
+                                    selectInput("choosen_var",
+                                                "Változó:", choices = NiceName(names(components[-c(1:3)]))),
+                                    selectInput("development",
+                                                "Fejletség:", choices = c("Fejlett", "Fejlődő", "Fejlődő (alsóbb)"))
+                                  ),
+                                  infoBoxOutput("box1"),
+                                  shiny::plotOutput("missing_heatmap")
+                                )     
+                        ),
+                        tabItem(tabName = "wef",
+                                box(
+                                  # Title can include an icon
+                                  title = "WEF jellegű ábrák", width = 12, height = "780px",
+                                  shiny::inputPanel(
+                                    selectInput("development_wef",
+                                                "Fejletség:", choices = c("Fejlett", "Fejlődő", "Fejlődő (alsóbb)")),
+                                    selectInput("wef_dimension", "Dimenzió", choices = c("Fenntarthatóság", "Munkaalapú társadalom", "Gazdasági fejlettség és növekedés", "Társadalmi egyenlőtlenség"))
+                                  ),
+                                  shiny::plotOutput("wef_plot", height = "600px")
+                                  
+                                )
+                        )
+                      )
+                    )
 )
 
-ui <- secure_app(head_auth = tags$script(inactivity),
-                 dashboardPage(skin = "red",
-                               dbHeader,
-                               dashboardSidebar(
-                                 sidebarMenu(
-                                   menuItem("Felhasznált adatok", tabName = "data", icon = icon("info")),
-                                   
-                                   menuItem("Adatminőség", tabName = "missing", icon = icon("database")),
-                                   menuItem("WEF ábrák", tabName = "wef", icon = icon("th")),
-                                   menuItem("Dinamika", tabName = "dynamics", icon = icon("chart-line"))
-                                 )
-                               ),
-                               
-                               dashboardBody(
-                                 tabItems(
-                                   # First tab content
-                                   tabItem(tabName = "data",
-                                           box(title = "Felhasznált adatok", height = "1700px", width = 12,
-                                               shiny::tableOutput("descriptive")
-                                           )
-                                           
-                                   ),
-                                   tabItem(tabName = "missing",
-                                           box(
-                                             title = "Adatminőség", height = "700px", width = 12,
-                                             shiny::inputPanel(
-                                               selectInput("choosen_var",
-                                                           "Változó:", choices = NiceName(names(components[-c(1:3)]))),
-                                               selectInput("development",
-                                                           "Fejletség:", choices = c("Fejlett", "Fejlődő", "Fejlődő (alsóbb)"))
-                                             ),
-                                             infoBoxOutput("box1"),
-                                             shiny::plotOutput("missing_heatmap")
-                                           )     
-                                   ),
-                                   tabItem(tabName = "wef",
-                                           box(
-                                             # Title can include an icon
-                                             title = "WEF jellegű ábrák", width = 12, height = "780px",
-                                             shiny::inputPanel(
-                                               selectInput("development_wef",
-                                                           "Fejletség:", choices = c("Fejlett", "Fejlődő", "Fejlődő (alsóbb)")),
-                                               selectInput("wef_dimension", "Dimenzió", choices = c("Fenntarthatóság", "Munkaalapú társadalom", "Gazdasági fejlettség és növekedés", "Társadalmi egyenlőtlenség"))
-                                             ),
-                                             shiny::plotOutput("wef_plot", height = "600px")
-                                             
-                                           )
-                                   ),
-                                   tabItem(tabName = "dynamics",
-                                           box(title = "Dinamika", width = 12, height = "900px",
-                                               inputPanel(
-                                                 selectInput("x",
-                                                             "X-tengely:", choices = NiceName(names(components[-c(1:3)])), selected = "Foglalkoztatási ráta"),
-                                                 selectInput("y",
-                                                             "Y-tengely:", choices = NiceName(names(components[-c(1:3)])), selected = "Függőségi ráta"),
-                                                 selectInput("size",
-                                                             "Méret:", choices = NiceName(names(components[-c(1:3)])), selected = "GDP (PPP)"),
-                                                 selectInput("dynamic_development",
-                                                             "Fejlettség:", choices = c("Összes", "Fejlett", "Fejlődő", "Fejlődő (alsóbb)")),
-                                                 sliderInput("dynamic_time", "Év:", 2010, 2019, step = 1, sep = "", value = 2019, animate = TRUE)
-                                               ), 
-                                               shiny::plotOutput("dynamic_plot")
-                                           )
-                                   )
-                                 )
-                               )
-                 )
-)
 
 server <- function(input, output) { 
   
-  result_auth <- secure_server(check_credentials = check_credentials(credentials))
-  
-  output$res_auth <- renderPrint({
-    reactiveValuesToList(result_auth)
+  output$index <- renderPlot({
+    x <- fitted_values %>% 
+      select(time, country, mean) 
+    browser()
+      # pivot_wider(names_from = time, values_from = mean, names_prefix = "y") 
+      # mutate(country = fct_reorder(country, y2019)) %>%
+      # pivot_longer(- country) %>% 
+      # ggplot(aes(time, country, fill = mean, label = format(round(mean, 2)))) +
+      # geom_tile(color = "black", show.legend = FALSE) +
+      # geom_text()
+      
   })
+  
+  output$downloadBtn <- downloadHandler(
+    filename = function() {
+      "components.csv"
+    },
+    content = function(file) {
+      myfile <- 'components.csv'
+      file.copy(myfile, file)
+    }
+  )
+  
   
   
   output$descriptive <- shiny::renderTable({
     
-    data_descript 
+    
+    
     # %>%
-      # arrange(Adat) %>%
-      # replace_na(list(Leírás = "")) %>%
-      # mutate(Leírás = str_wrap(Leírás, 30)) %>%
-      # DT::datatable(
-      #   extensions = c('Buttons', "Scroller"),
-      #   options = list(
-      #     deferRender = TRUE,
-      #     scrollY = 300,
-      #     scroller = TRUE,
-      #     style = "bootstrap4",
-      #     searching = TRUE,
-      #     autoWidth = TRUE,
-      #     ordering = TRUE,
-      #     dom = 'Bfrtip',
-      #     buttons = c('copy', 'csv', 'excel', 'pdf', 'print')
-      #   )
-      # )
+    # arrange(Adat) %>%
+    # replace_na(list(Leírás = "")) %>%
+    # mutate(Leírás = str_wrap(Leírás, 30)) %>%
+    # DT::datatable(
+    #   extensions = c('Buttons', "Scroller"),
+    #   options = list(
+    #     deferRender = TRUE,
+    #     scrollY = 300,
+    #     scroller = TRUE,
+    #     style = "bootstrap4",
+    #     searching = TRUE,
+    #     autoWidth = TRUE,
+    #     ordering = TRUE,
+    #     dom = 'Bfrtip',
+    #     buttons = c('copy', 'csv', 'excel', 'pdf', 'print')
+    #   )
+    # )
   })
-
-
+  
+  
   output$box1 <- shinydashboard::renderInfoBox({
     # TODO WORKS
     development_filter <- case_when(
@@ -264,14 +258,14 @@ server <- function(input, output) {
     x_axis <- recode_name(input$x, FALSE)
     y_axis <- recode_name(input$y, FALSE)
     input_size <- recode_name(input$size, FALSE)
-
+    
     development_filter <- case_when(
       input$development_wef == "Fejlett" ~ "advanced_economies",
       input$development_wef == "Fejlődő" ~ "emerging_economies",
       input$development_wef == "Fejlődő (alsóbb)" ~ "emerging_economies_cont_d",
       TRUE ~ "all"
     )
-
+    
     df <- components %>%
       select(development, time, country, x_axis, y_axis, input_size) %>%
       set_names("development", "time", "country", "x", "y", "size")
@@ -282,7 +276,7 @@ server <- function(input, output) {
       ymin = min(df$y),
       ymax = max(df$y)
     )
-
+    
     if (development_filter != "all") {
       df <- df %>%
         filter(development == development_filter)
